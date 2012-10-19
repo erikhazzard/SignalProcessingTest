@@ -139,10 +139,7 @@ SIGNAL.Views.DataInput = (function(_super) {
   };
 
   DataInput.prototype.getFormula = function() {
-    var _this = this;
-    return function() {
-      return Math.sin(_this.tick);
-    };
+    return Math.sin(this.tick);
   };
 
   DataInput.prototype.render = function() {
@@ -189,7 +186,7 @@ SIGNAL.Views.DataInput = (function(_super) {
     if (this.useRandom) {
       curData = this.getRandom()();
     } else {
-      curData = this.getFormula()();
+      curData = this.getFormula();
     }
     if (this.model.get('getCurData')) curData = this.model.get('getCurData')();
     data.push(curData);

@@ -175,9 +175,9 @@ class SIGNAL.Views.DataInput extends Backbone.View
             -2 + Math.random() * 4.0
         #return d3.random.normal(@randomStart, @randomEnd)
         
+    #Redefine this to see different formulars
     getFormula: ()=>
-        return ()=>
-            Math.sin(@tick)
+        Math.sin(@tick)
 
     #------------------------------------
     #Render
@@ -287,7 +287,7 @@ class SIGNAL.Views.DataInput extends Backbone.View
         if @useRandom
             curData = @getRandom()()
         else
-            curData = @getFormula()()
+            curData = @getFormula()
 
         #If there is a getCurData function provided, use it instead
         #   (We do this for the output graph)
