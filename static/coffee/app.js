@@ -63,7 +63,8 @@ SIGNAL.Views.App = (function(_super) {
   };
 
   App.prototype.render = function() {
-    var _this = this;
+    var startSample, startTimeDelay,
+      _this = this;
     this.$formulaInput = $('#formula-input');
     $('#use-random').on('click', function() {
       return SIGNAL.views.input.useRandom = true;
@@ -72,16 +73,42 @@ SIGNAL.Views.App = (function(_super) {
       return SIGNAL.views.input.useRandom = false;
     });
     this.$samples = $('#numSamples');
+    this.$samplesLabel = $('#samplesLabel');
+    startSample = 10;
+    this.$samplesLabel.html(startSample);
+    this.$timeDelay = $('#timeDelay');
+    this.$timeDelayLabel = $('#timeDelayLabel');
+    startTimeDelay = 200;
+    this.$timeDelayLabel.html(startTimeDelay);
     this.$filterAmount = $('#filterAmount');
-    $('#updateSamples').on('click', function() {
-      var filterAmount, samples;
-      samples = _this.$samples.val();
-      filterAmount = _this.$filterAmount.val();
-      if (samples.length > 0) {
+    this.$samples.slider({
+      min: 0,
+      max: 40,
+      value: startSample,
+      animate: true,
+      slide: function(event, ui) {
         SIGNAL.models.output.set({
-          nSamples: parseInt(samples, 10)
+          nSamples: parseInt(ui.value, 10)
         });
+        return _this.$samplesLabel.html(ui.value);
       }
+    });
+    this.$timeDelay.slider({
+      min: 1,
+      max: 800,
+      value: 200,
+      animate: false,
+      slide: function(event, ui) {
+        SIGNAL.models.output.set({
+          timeDelay: parseInt(ui.value, 10)
+        });
+        SIGNAL.models.input.set({
+          timeDelay: parseInt(ui.value, 10)
+        });
+        return _this.$timeDelayLabel.html(ui.value);
+      }
+    });
+    $('#updateSamples').on('click', function() {
       if (filterAmount.length > 0) {
         return SIGNAL.models.output.set({
           filterAmount: parseFloat(filterAmount)
@@ -105,6 +132,7 @@ SIGNAL.Models.Data = (function(_super) {
 
   Data.prototype.defaults = {
     nSamples: 10,
+    timeDelay: 200,
     filterAmount: void 0,
     useFilter: false
   };
@@ -123,9 +151,13 @@ SIGNAL.Models.Data = (function(_super) {
     filterAmount = this.get('filterAmount');
     start = len - (nSamples / 2) - 1;
     curVal = 0;
-    for (i = 0; 0 <= nSamples ? i <= nSamples : i >= nSamples; 0 <= nSamples ? i++ : i--) {
-      index = start + ((nSamples / 2) * -1) + i;
-      curVal += data[index] * filterAmount;
+    if (nSamples > 0) {
+      for (i = 0; 0 <= nSamples ? i <= nSamples : i >= nSamples; 0 <= nSamples ? i++ : i--) {
+        index = start + ((nSamples / 2) * -1) + i;
+        curVal += data[index] * filterAmount;
+      }
+    } else {
+      curVal = data[len - 1];
     }
     return curVal;
   };
@@ -152,8 +184,7 @@ SIGNAL.Views.DataInput = (function(_super) {
 
   DataInput.prototype.initialize = function() {
     this.el = this.options.el;
-    this.timeDelay = 220;
-    this.n = 30;
+    this.n = 48;
     this.tick = 0;
     this.useRandom = false;
     this.random = d3.random.normal(0, 0);
@@ -237,13 +268,13 @@ SIGNAL.Views.DataInput = (function(_super) {
       return requestAnimFrame(function() {
         return _this.dataTimer();
       });
-    }, this.timeDelay);
+    }, this.model.get('timeDelay'));
     return this;
   };
 
   DataInput.prototype.redraw = function(curData) {
     var _this = this;
-    this.signalPath.attr("d", this.line).attr("transform", null).transition().duration(this.timeDelay).ease("linear").attr("transform", "translate(" + this.xScale(-1) + ")");
+    this.signalPath.attr("d", this.line).attr("transform", null).transition().duration(this.model.get('timeDelay')).ease("linear").attr("transform", "translate(" + this.xScale(-1) + ")");
     this.signalText.text(function(d, i) {
       return curData;
     });

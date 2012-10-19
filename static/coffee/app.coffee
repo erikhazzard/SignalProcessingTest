@@ -44,7 +44,7 @@ window.SIGNAL = SIGNAL
 #
 # ===========================================================================
 SIGNAL.functions.init = ()=>
-    #Render the app
+    #Create and Render the app
     #------------------------------------
     SIGNAL.views.app = new SIGNAL.Views.App({})
     SIGNAL.views.app.render()
@@ -92,6 +92,7 @@ class SIGNAL.Views.App extends Backbone.View
         @$formulaInput = $('#formula-input')
 
         #Input 
+        #--------------------------------
         $('#use-random').on('click', ()=>
             SIGNAL.views.input.useRandom = true
         )
@@ -100,19 +101,56 @@ class SIGNAL.Views.App extends Backbone.View
         )
 
         #Output
+        #--------------------------------
+        #Sample slider
         @$samples = $('#numSamples')
+        @$samplesLabel = $('#samplesLabel')
+        startSample = 10
+        @$samplesLabel.html(startSample)
+
+        #Time delay
+        @$timeDelay = $('#timeDelay')
+        @$timeDelayLabel = $('#timeDelayLabel')
+        startTimeDelay = 200
+        @$timeDelayLabel.html(startTimeDelay)
+
+        #Filter amount
         @$filterAmount = $('#filterAmount')
 
-        $('#updateSamples').on('click', ()=>
-            #Get vals for num samples and filter amount
-            samples = @$samples.val()
-            filterAmount = @$filterAmount.val()
-
-            #Update signal output based on user input
-            if samples.length > 0
+        #Sliders
+        #--------------------------------
+        #Create slider for num samples
+        @$samples.slider({
+            min: 0,
+            max: 40,
+            value: startSample
+            animate: true,
+            slide: ( event, ui )=>
                 SIGNAL.models.output.set({
-                    nSamples: parseInt(samples,10)
+                    nSamples: parseInt(ui.value,10)
                 })
+                #Update UI
+                @$samplesLabel.html(ui.value)
+        })
+
+        #Create slider for time delay
+        @$timeDelay.slider({
+            min: 1,
+            max: 800,
+            value: 200
+            animate: false,
+            slide: ( event, ui )=>
+                SIGNAL.models.output.set({
+                    timeDelay: parseInt(ui.value,10)
+                })
+                SIGNAL.models.input.set({
+                    timeDelay: parseInt(ui.value,10)
+                })
+                #Update UI
+                @$timeDelayLabel.html(ui.value)
+        })
+
+        $('#updateSamples').on('click', ()=>
             if filterAmount.length > 0
                 SIGNAL.models.output.set({
                     filterAmount: parseFloat(filterAmount)
@@ -133,6 +171,9 @@ class SIGNAL.Models.Data extends Backbone.Model
         #Set the sample amount (how many points to sample before and after
         #   some point)
         nSamples: 10,
+
+        #Time delay
+        timeDelay: 200,
         #Specify the filter amount
         #If not specified, will default to 1/nSamples (an average)
         #   If it goes above 1, we're effectively amplifying the signal
@@ -155,15 +196,16 @@ class SIGNAL.Models.Data extends Backbone.Model
         #Pick the 'mid' point to start at (between sample length)
         start = len - (nSamples / 2) - 1
 
-        #TODO: let user choose num samples
-        
         #Calculate the current value based on n/2 samples before and after 
         #   the current value
         curVal = 0
-        for i in [0..nSamples]
-            index = start + ( (nSamples / 2) * - 1) + i
-            curVal += (data[index] * filterAmount)
-        
+        if nSamples > 0
+            for i in [0..nSamples]
+                index = start + ( (nSamples / 2) * - 1) + i
+                curVal += (data[index] * filterAmount)
+        else
+            curVal = data[len-1]
+
         return curVal
 # ===========================================================================
 #
@@ -176,8 +218,7 @@ class SIGNAL.Views.DataInput extends Backbone.View
 
     initialize: ()=>
         @el = @options.el
-        @timeDelay = 220
-        @n = 30
+        @n = 48
         @tick = 0
 
         @useRandom = false
@@ -347,11 +388,10 @@ class SIGNAL.Views.DataInput extends Backbone.View
             requestAnimFrame(()=>
                 @dataTimer()
             )
-        ,@timeDelay
+        ,@model.get('timeDelay')
         )
 
         return @
-
 
     #Define redrew function
     redraw: (curData)=>
@@ -360,7 +400,7 @@ class SIGNAL.Views.DataInput extends Backbone.View
             .attr("d", @line)
             .attr("transform", null)
             .transition()
-            .duration(@timeDelay)
+            .duration(@model.get('timeDelay'))
             .ease("linear")
             .attr("transform", "translate(" + @xScale(-1) + ")")
             #Could have it call itself

@@ -3,9 +3,11 @@
 <head>
     <meta charset='utf-8'>
     <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-    <title>Guildwars 2 Data Visualization | guildwars2viz.com </title>
+    <title>Sample Processing Test</title>
     <!-- CSS -->
     <link href='static/css/style.css' rel='stylesheet' type='text/css'> 
+
+     <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.0/themes/base/jquery-ui.css" />
 </head>
 <body>
 <div id='signal-wrapper'>
@@ -14,22 +16,22 @@
     <svg width=600 height=200 id='signal-output'> </svg>
 </div>
 <div id='signal-actions'>
+    <h2>Update Rate</h2>
+    <div id='timeDelay'></div>
+    <div id='timeDelayLabel'></div>
+
     <h2>Input</h2>
-    <input id='use-random' type='button' value='Use Random Values' />
+    <input id='use-random' type='button' class='btn' value='Use Random Values' />
     <br />
-    <input id='use-formula' type='button' value='Use sin(x) Formula' />
+    <input id='use-formula' type='button' class='btn' value='Use sin(x) Formula' />
 
     <br />
     <br />
 
     <h2>Output</h2>
-    <input type='text' placeholder='Number of Samples (should be odd)'
-        id='numSamples' /> 
-    <br />
-    <input type='text' placeholder='Filter Amount (none for average)'
-        id='filterAmount' /> 
-    <br />
-    <input type='button' value='Update' id='updateSamples' />
+    Number of Samples
+    <div id='numSamples'></div>
+    <div id='samplesLabel'></div>
 </div>
 
 <!-- ======================================================================
@@ -39,6 +41,7 @@
     ======================================================================= -->
 <!-- Third party -->
 <script src='static/lib/all3rdjs.min.js'></script>
+<script src="http://code.jquery.com/ui/1.9.0/jquery-ui.js"></script>
 
 <!-- ======================================================================
     Our scripts
