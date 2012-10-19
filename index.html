@@ -6,10 +6,53 @@
     <title>Guildwars 2 Data Visualization | guildwars2viz.com </title>
     <!-- CSS -->
     <link href='/static/css/style-all.css' rel='stylesheet' type='text/css'> 
+    <style>
+        svg {
+          font: 10px sans-serif;
+        }
+
+        .line {
+          fill: none;
+          stroke: #000;
+          stroke-width: 1.5px;
+        }
+
+        .axis path, .axis line {
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+        }
+
+        #signal-actions {
+            background: #f0f0f0;
+            bottom: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 200px;
+        }
+    </style>
+
 </head>
 <body>
-    <svg width=600 height=150 id='signal-input'> </svg>
-    <svg width=600 height=150 id='signal-output'> </svg>
+<div id='signal-wrapper'>
+    <svg width=600 height=200 id='signal-input'> </svg>
+    <br />
+    <svg width=600 height=200 id='signal-output'> </svg>
+</div>
+<div id='signal-actions'>
+
+    <!--
+    <input type='text' placeholder='Number of Samples'
+        id='numSamples' /> 
+    <input type='button' value='Update' />
+    -->
+    <br />
+    <br />
+    <input id='use-random' type='button' value='Use Random Values' />
+    <br />
+    <input id='use-formula' type='button' value='Use sin(x) Formula' />
+</div>
 
 <!-- ======================================================================
 

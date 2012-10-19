@@ -20,6 +20,7 @@ SIGNAL = (()=>
 
     #Public API returned
     return {
+        #Classes
         Models: {},
         Views: {},
 
@@ -43,17 +44,97 @@ window.SIGNAL = SIGNAL
 #
 # ===========================================================================
 SIGNAL.functions.init = ()=>
-    #Setup stuff when page loads 
-    input = new Backbone.Model({})
+    #Render the app
+    #------------------------------------
+    SIGNAL.views.app = new SIGNAL.Views.App({})
+    SIGNAL.views.app.render()
+
+    #input signal
+    #------------------------------------
+    input = new SIGNAL.Models.Data()
     SIGNAL.models.input = input
 
     #Create view and tender it
     SIGNAL.views.input = new SIGNAL.Views.DataInput({
         model: SIGNAL.models.input
+        el: '#signal-input'
     })
     SIGNAL.views.input.render()
 
+    #output signal
+    #------------------------------------
+    #Set the sample amount (how many points to sample before and after
+    #   some point)
+    nSamples = 10
+    #Specify the filter coefficient
+    #   If it goes above 1, we're effectively amplifying the signal
+    filterAmount = 1 / nSamples
+
+    output = new SIGNAL.Models.Data({
+        getCurData: ()=>
+            #Store refs to input data 
+            #   data is the INPUT data
+            data = SIGNAL.models.input.get('data')
+            len = data.length
+
+            #Pick the 'mid' point to start at (between sample length)
+            #start = len - nSamples / 2
+            start = len - 3
+
+            #TODO: let user choose num samples
+            
+            #Calculate the current value based on n/2 samples before and after 
+            #   the current value
+            curVal = (
+                ( (data[start] - 2) * 0.2 )
+                + ( (data[start] - 1) * 0.2 )
+                + ( (data[start] - 0) * 0.2 )
+                + ( (data[start] + 1) * 0.2 )
+                + ( (data[start] + 2) * 0.2 )
+            )
+
+            return curVal
+    })
+    SIGNAL.models.output = output
+
+    SIGNAL.views.output= new SIGNAL.Views.DataInput({
+        model: SIGNAL.models.output
+        el: '#signal-output'
+    })
+    SIGNAL.views.output.render()
+
     return true
+
+# ===========================================================================
+#
+# APP view
+# 
+# ===========================================================================
+class SIGNAL.Views.App extends Backbone.View
+    el: "body"
+    initialize: ()=>
+        return @
+
+    render: ()=>
+        #Add event listeners
+        @$formulaInput = $('#formula-input')
+
+        $('#use-random').on('click', ()=>
+            SIGNAL.views.input.useRandom = true
+        )
+        $('#use-formula').on('click', ()=>
+            SIGNAL.views.input.useRandom = false
+        )
+
+        return @
+
+# ===========================================================================
+# Signal Processing view
+# ===========================================================================
+# ===========================================================================
+# Model
+# ===========================================================================
+class SIGNAL.Models.Data extends Backbone.Model
 
 # ===========================================================================
 #
@@ -65,64 +146,121 @@ class SIGNAL.Views.DataInput extends Backbone.View
     #View for the input graph
 
     initialize: ()=>
-        @startTime = 1350628512531
-        @val = 70
-        @timeDelay = 100
+        @el = @options.el
+        @timeDelay = 220
+        @n = 30
+        @tick = 0
 
-        #Generate some data
-        @next = ()=>
-            return {
-                time: ++@startTime,
-                value: @val = ~~Math.max(10, Math.min(90, @val + 10 * (Math.random() - .5)))
-            }
+        @useRandom = false
+        
+        #Default, use 0 for starting values
+        @random = d3.random.normal(0,0)
+        @randomStart = 0
+        @randomEnd = 0.4
+        
+        if @useRandom
+            #If random, use random values
+            @random = @getRandom
 
         #Create and store some input data
-        @model.set({ 'data': d3.range(33).map(@next) })
+        @model.set({ 'data': d3.range(@n).map(@random) })
 
         return @
 
+    #------------------------------------
+    #Data value helpers
+    #------------------------------------
+    getRandom: ()=>
+        return ()=>
+            -2 + Math.random() * 4.0
+        #return d3.random.normal(@randomStart, @randomEnd)
+        
+    getFormula: ()=>
+        return ()=>
+            Math.sin(@tick)
+
+    #------------------------------------
+    #Render
+    #------------------------------------
     render: ()=>
         #Sets up the SVG elements
-        @width = 20
-        @height = 80
+        @margin = {
+            top: 20,
+            left: 40,
+            right: 10,
+            bottom: 20
+        }
+        
+        @svg = d3.select(@el)
+        @width = @svg.attr('width') - (@margin.left + @margin.right)
+        @height = @svg.attr('height') - (@margin.top + @margin.bottom)
 
         #Store ref to data
         data = @model.get('data')
 
+        #Setup scales
+        #--------------------------------
         @xScale = d3.scale.linear()
-            .domain([0, 1])
+            .domain([0, @n - 1])
             .range([0, @width])
         @yScale = d3.scale.linear()
-            .domain([0, 100])
-            .rangeRound([0, @height])
+            .domain([-2, 2])
+            .rangeRound([@height, 0])
+    
+        #Setup the chart group wrapper
+        #--------------------------------
+        @chart = @svg
+            .append("g")
+                .attr("transform",
+                    "translate(" + [@margin.left, @margin.top] + ")")
 
-        @chart = d3.select("#signal-input")
-            .attr("class", "chart")
-            .attr("width", @width * data.length - 1)
-            .attr("height", @height)
-        
-        #Add initial bars
-        @chart.selectAll("rect")
-            .data(data)
-            .enter().append("rect")
-                .attr("x", (d, i)=>
-                    return @xScale(i) - .5
-                )
-                .attr("y", (d)=>
-                    return @height - @yScale(d.value) - .5
-                )
+        #line function to create a line for the path
+        @line = d3.svg.line()
+            .x((d, i) =>
+                return @xScale(i)
+            )
+            .y((d, i) =>
+                return @yScale(d)
+            )
+
+    
+        #Setup clip path to hide extra line section
+        @chart.append("defs").append("clipPath")
+            .attr("id", "clip")
+                .append("rect")
                 .attr("width", @width)
-                .attr("height", (d)=>
-                    return @yScale(d.value)
-                )
+                .attr("height", @height)
 
-        #Add axis
-        @chart.append("line")
-            .attr("x1", 0)
-            .attr("x2", @width * data.length)
-            .attr("y1", @height - .5)
-            .attr("y2", @height - .5)
-            .style("stroke", "#000")
+        @chart.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + @height + ")")
+            .call(d3.svg.axis().scale(@xScale).orient("bottom"))
+
+        @chart.append("g")
+            .attr("class", "y axis")
+            .call(d3.svg.axis().scale(@yScale).orient("left"))
+
+        #Create the signal path, which will be updated 
+        #   every @timeDelay ms
+        @signalPath = @chart.append("g")
+            .attr("clip-path", "url(#clip)")
+                .append("path")
+                .data([data])
+                .attr("class", "line")
+                .attr("d", @line)
+
+        #Add text to show current value
+        @signalText = @svg.append('g')
+            .append('svg:text')
+            .data([data])
+            .text('0')
+                .attr({
+                    x: @width / 2
+                    y: '16px'
+                })
+                .style({
+                    'font-size': '16px'
+                })
 
         #Update data every tick
         #   Note: we could get from server instead
@@ -133,21 +271,49 @@ class SIGNAL.Views.DataInput extends Backbone.View
     #Helper functions 
     #------------------------------------
     dataTimer: ()=>
-        #Setup timer to update data every 1 second
-        console.log('called')
+        #Setup timer to update data every @timeDelay ms
+        
+        #keep track of ticks so we can 'reset' it
+        @tick += 1
+        if @tick > 5000
+            @tick = 0
 
         #Update the data
+        #--------------------------------
         data = @model.get('data')
-        data.shift()
-        data.push(@next())
+
+        #Data to add
+        #--------------------------------
+        if @useRandom
+            curData = @getRandom()()
+        else
+            curData = @getFormula()()
+
+        #If there is a getCurData function provided, use it instead
+        #   (We do this for the output graph)
+        if @model.get('getCurData')
+            curData = @model.get('getCurData')()
+
+        #Add the current data
+        data.push(curData)
 
         #Update the model
+        #--------------------------------
         @model.set({data: data})
 
-        #Redraw it
-        @redraw()
+        #Redraw it, passing in value of current data
+        #--------------------------------
+        @redraw(curData)
+
+        #Remove old data point
+        data.shift()
+
+        #Update the model
+        #--------------------------------
+        @model.set({data: data})
 
         #Keep calling it, but on a delay
+        #--------------------------------
         setTimeout( ()=>
             requestAnimFrame(()=>
                 @dataTimer()
@@ -159,45 +325,22 @@ class SIGNAL.Views.DataInput extends Backbone.View
 
 
     #Define redrew function
-    redraw: ()=>
-        #This function will redraw the graph
-        rect = @chart.selectAll("rect")
-            .data(@model.get('data'), (d)=>
-                return d.time
-            )
-        
-        #Create new rect
-        rect.enter().insert("rect", "line")
-            .attr("x", (d, i)=>
-                return @xScale(i + 1) - .5
-            )
-            .attr("y", (d)=>
-                return @height - @yScale(d.value) - .5
-            )
-            .attr("width", @width)
-            .attr("height", (d)=>
-                return @yScale(d.value)
-            )
+    redraw: (curData)=>
+        #Update the signal path
+        @signalPath
+            .attr("d", @line)
+            .attr("transform", null)
             .transition()
-                .duration(@timeDelay)
-                .attr("x", (d, i)=>
-                    return @xScale(i) - .5
-                )
-
-        #Move the rect over
-        rect.transition()
             .duration(@timeDelay)
-            .attr("x", (d, i)=>
-                return @xScale(i) - .5
-            )
+            .ease("linear")
+            .attr("transform", "translate(" + @xScale(-1) + ")")
+            #Could have it call itself
+            #.each("end", @tick)
 
-        #Remove the last point
-        rect.exit().transition()
-            .duration(@timeDelay)
-            .attr("x", (d, i)=>
-                return @xScale(i - 1) - .5
-            )
-            .remove()
+        #update text
+        @signalText.text((d,i)=>
+            return curData
+        )
 
         return @
 
