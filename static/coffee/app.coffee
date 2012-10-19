@@ -63,37 +63,9 @@ SIGNAL.functions.init = ()=>
 
     #output signal
     #------------------------------------
-    #Set the sample amount (how many points to sample before and after
-    #   some point)
-    nSamples = 10
-    #Specify the filter coefficient
-    #   If it goes above 1, we're effectively amplifying the signal
-    filterAmount = 1 / nSamples
-
     output = new SIGNAL.Models.Data({
-        getCurData: ()=>
-            #Store refs to input data 
-            #   data is the INPUT data
-            data = SIGNAL.models.input.get('data')
-            len = data.length
-
-            #Pick the 'mid' point to start at (between sample length)
-            #start = len - nSamples / 2
-            start = len - 3
-
-            #TODO: let user choose num samples
-            
-            #Calculate the current value based on n/2 samples before and after 
-            #   the current value
-            curVal = (
-                ( (data[start] - 2) * 0.2 )
-                + ( (data[start] - 1) * 0.2 )
-                + ( (data[start] - 0) * 0.2 )
-                + ( (data[start] + 1) * 0.2 )
-                + ( (data[start] + 2) * 0.2 )
-            )
-
-            return curVal
+        #This is an output, use the filter
+        useFilter: true
     })
     SIGNAL.models.output = output
 
@@ -119,12 +91,34 @@ class SIGNAL.Views.App extends Backbone.View
         #Add event listeners
         @$formulaInput = $('#formula-input')
 
+        #Input 
         $('#use-random').on('click', ()=>
             SIGNAL.views.input.useRandom = true
         )
         $('#use-formula').on('click', ()=>
             SIGNAL.views.input.useRandom = false
         )
+
+        #Output
+        @$samples = $('#numSamples')
+        @$filterAmount = $('#filterAmount')
+
+        $('#updateSamples').on('click', ()=>
+            #Get vals for num samples and filter amount
+            samples = @$samples.val()
+            filterAmount = @$filterAmount.val()
+
+            #Update signal output based on user input
+            if samples.length > 0
+                SIGNAL.models.output.set({
+                    nSamples: parseInt(samples,10)
+                })
+            if filterAmount.length > 0
+                SIGNAL.models.output.set({
+                    filterAmount: parseFloat(filterAmount)
+                })
+        )
+
 
         return @
 
@@ -135,7 +129,42 @@ class SIGNAL.Views.App extends Backbone.View
 # Model
 # ===========================================================================
 class SIGNAL.Models.Data extends Backbone.Model
+    defaults: {
+        #Set the sample amount (how many points to sample before and after
+        #   some point)
+        nSamples: 10,
+        #Specify the filter amount
+        #If not specified, will default to 1/nSamples (an average)
+        #   If it goes above 1, we're effectively amplifying the signal
+        filterAmount: undefined,
 
+        #only use filter if specified. Othewise, it's an Input
+        useFilter: false,
+    }
+    initialize: ()->
+        @set({ filterAmount: 1 / @get('nSamples') })
+
+    getCurData: ()->
+        #Store refs to input data 
+        #   data is the INPUT data
+        data = SIGNAL.models.input.get('data')
+        len = data.length
+        nSamples = @get('nSamples')
+        filterAmount = @get('filterAmount')
+
+        #Pick the 'mid' point to start at (between sample length)
+        start = len - (nSamples / 2) - 1
+
+        #TODO: let user choose num samples
+        
+        #Calculate the current value based on n/2 samples before and after 
+        #   the current value
+        curVal = 0
+        for i in [0..nSamples]
+            index = start + ( (nSamples / 2) * - 1) + i
+            curVal += (data[index] * filterAmount)
+        
+        return curVal
 # ===========================================================================
 #
 # Setup the input view
@@ -291,8 +320,8 @@ class SIGNAL.Views.DataInput extends Backbone.View
 
         #If there is a getCurData function provided, use it instead
         #   (We do this for the output graph)
-        if @model.get('getCurData')
-            curData = @model.get('getCurData')()
+        if @model.get('useFilter')
+            curData = @model.getCurData()
 
         #Add the current data
         data.push(curData)

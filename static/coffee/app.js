@@ -24,7 +24,7 @@ SIGNAL = (function() {
 window.SIGNAL = SIGNAL;
 
 SIGNAL.functions.init = function() {
-  var filterAmount, input, nSamples, output;
+  var input, output;
   SIGNAL.views.app = new SIGNAL.Views.App({});
   SIGNAL.views.app.render();
   input = new SIGNAL.Models.Data();
@@ -34,17 +34,8 @@ SIGNAL.functions.init = function() {
     el: '#signal-input'
   });
   SIGNAL.views.input.render();
-  nSamples = 10;
-  filterAmount = 1 / nSamples;
   output = new SIGNAL.Models.Data({
-    getCurData: function() {
-      var curVal, data, len, start;
-      data = SIGNAL.models.input.get('data');
-      len = data.length;
-      start = len - 3;
-      curVal = ((data[start] - 2) * 0.2, +((data[start] - 1) * 0.2), +((data[start] - 0) * 0.2), +((data[start] + 1) * 0.2), +((data[start] + 2) * 0.2));
-      return curVal;
-    }
+    useFilter: true
   });
   SIGNAL.models.output = output;
   SIGNAL.views.output = new SIGNAL.Views.DataInput({
@@ -80,6 +71,23 @@ SIGNAL.Views.App = (function(_super) {
     $('#use-formula').on('click', function() {
       return SIGNAL.views.input.useRandom = false;
     });
+    this.$samples = $('#numSamples');
+    this.$filterAmount = $('#filterAmount');
+    $('#updateSamples').on('click', function() {
+      var filterAmount, samples;
+      samples = _this.$samples.val();
+      filterAmount = _this.$filterAmount.val();
+      if (samples.length > 0) {
+        SIGNAL.models.output.set({
+          nSamples: parseInt(samples, 10)
+        });
+      }
+      if (filterAmount.length > 0) {
+        return SIGNAL.models.output.set({
+          filterAmount: parseFloat(filterAmount)
+        });
+      }
+    });
     return this;
   };
 
@@ -94,6 +102,33 @@ SIGNAL.Models.Data = (function(_super) {
   function Data() {
     Data.__super__.constructor.apply(this, arguments);
   }
+
+  Data.prototype.defaults = {
+    nSamples: 10,
+    filterAmount: void 0,
+    useFilter: false
+  };
+
+  Data.prototype.initialize = function() {
+    return this.set({
+      filterAmount: 1 / this.get('nSamples')
+    });
+  };
+
+  Data.prototype.getCurData = function() {
+    var curVal, data, filterAmount, i, index, len, nSamples, start;
+    data = SIGNAL.models.input.get('data');
+    len = data.length;
+    nSamples = this.get('nSamples');
+    filterAmount = this.get('filterAmount');
+    start = len - (nSamples / 2) - 1;
+    curVal = 0;
+    for (i = 0; 0 <= nSamples ? i <= nSamples : i >= nSamples; 0 <= nSamples ? i++ : i--) {
+      index = start + ((nSamples / 2) * -1) + i;
+      curVal += data[index] * filterAmount;
+    }
+    return curVal;
+  };
 
   return Data;
 
@@ -188,7 +223,7 @@ SIGNAL.Views.DataInput = (function(_super) {
     } else {
       curData = this.getFormula();
     }
-    if (this.model.get('getCurData')) curData = this.model.get('getCurData')();
+    if (this.model.get('useFilter')) curData = this.model.getCurData();
     data.push(curData);
     this.model.set({
       data: data

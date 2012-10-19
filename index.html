@@ -41,17 +41,22 @@
     <svg width=600 height=200 id='signal-output'> </svg>
 </div>
 <div id='signal-actions'>
-
-    <!--
-    <input type='text' placeholder='Number of Samples'
-        id='numSamples' /> 
-    <input type='button' value='Update' />
-    -->
-    <br />
-    <br />
+    <h2>Input</h2>
     <input id='use-random' type='button' value='Use Random Values' />
     <br />
     <input id='use-formula' type='button' value='Use sin(x) Formula' />
+
+    <br />
+    <br />
+
+    <h2>Output</h2>
+    <input type='text' placeholder='Number of Samples (should be odd)'
+        id='numSamples' /> 
+    <br />
+    <input type='text' placeholder='Filter Amount (none for average)'
+        id='filterAmount' /> 
+    <br />
+    <input type='button' value='Update' id='updateSamples' />
 </div>
 
 <!-- ======================================================================
