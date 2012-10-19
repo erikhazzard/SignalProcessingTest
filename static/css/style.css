@@ -122,8 +122,8 @@ svg {
     width: 270px;
 }
 
-#signal-actions input[type='text'] {
-    min-width: 190px;
+#signal-actions input {
+    font-weight: bold;
 }
 
 #signal-actions .amplify {

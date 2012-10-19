@@ -68,10 +68,16 @@ SIGNAL.Views.App = (function(_super) {
     var filterSlide, filterUpdate, graph, samplesSlide, samplesUpdate, startSample, _fn, _i, _len, _ref,
       _this = this;
     this.$formulaInput = $('#formula-input');
-    $('#use-random').on('click', function() {
+    this.$useRandom = $('#use-random');
+    this.$useFormula = $('#use-formula');
+    this.$useRandom.on('click', function() {
+      _this.$useFormula.removeClass('active');
+      _this.$useRandom.addClass('active');
       return SIGNAL.views.input.useRandom = true;
     });
-    $('#use-formula').on('click', function() {
+    this.$useFormula.on('click', function() {
+      _this.$useRandom.removeClass('active');
+      _this.$useFormula.addClass('active');
       return SIGNAL.views.input.useRandom = false;
     });
     this.$samples = $('#numSamples');

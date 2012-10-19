@@ -95,10 +95,19 @@ class SIGNAL.Views.App extends Backbone.View
 
         #Input 
         #--------------------------------
-        $('#use-random').on('click', ()=>
+        @$useRandom = $('#use-random')
+        @$useFormula = $('#use-formula')
+
+        #Switch the input type when clicking on buttons, update
+        #   the active class as well (to show a radio button type behavior)
+        @$useRandom.on('click', ()=>
+            @$useFormula.removeClass('active')
+            @$useRandom.addClass('active')
             SIGNAL.views.input.useRandom = true
         )
-        $('#use-formula').on('click', ()=>
+        @$useFormula.on('click', ()=>
+            @$useRandom.removeClass('active')
+            @$useFormula.addClass('active')
             SIGNAL.views.input.useRandom = false
         )
 
