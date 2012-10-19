@@ -116,23 +116,11 @@ class SIGNAL.Views.App extends Backbone.View
 
         #Filter amount
         @$filterAmount = $('#filterAmount')
+        @$filterAmountLabel = $('#filterAmountLabel')
+        @$filterAmountLabel.html("1.0")
 
         #Sliders
         #--------------------------------
-        #Create slider for num samples
-        @$samples.slider({
-            min: 0,
-            max: 40,
-            value: startSample
-            animate: true,
-            slide: ( event, ui )=>
-                SIGNAL.models.output.set({
-                    nSamples: parseInt(ui.value,10)
-                })
-                #Update UI
-                @$samplesLabel.html(ui.value)
-        })
-
         #Create slider for time delay
         @$timeDelay.slider({
             min: 1,
@@ -150,12 +138,44 @@ class SIGNAL.Views.App extends Backbone.View
                 @$timeDelayLabel.html(ui.value)
         })
 
-        $('#updateSamples').on('click', ()=>
-            if filterAmount.length > 0
+        #Create slider for num samples
+        @$samples.slider({
+            min: 0,
+            max: 40,
+            value: startSample
+            animate: true,
+            slide: ( event, ui )=>
+                SIGNAL.models.output.set({
+                    nSamples: parseInt(ui.value,10)
+                })
+                #Update UI
+                @$samplesLabel.html(ui.value)
+        })
+
+        #Slider for filter
+        @$filterAmount.slider({
+            min: -100,
+            max: 200,
+            value: 100
+            animate: false,
+            slide: ( event, ui )=>
+                #Turn val into number from -2.0 to 2.0
+                val = ui.value / 100
+                #Calculate filter coefficient
+                samples = SIGNAL.models.output.get('nSamples')
+                if samples > 0
+                    filterAmount = val / samples
+                else
+                    filterAmount = val
+
+                #Calculate filter coefficient based on user
+                #   selected filter amount
                 SIGNAL.models.output.set({
                     filterAmount: parseFloat(filterAmount)
                 })
-        )
+                #Update UI
+                @$filterAmountLabel.html(parseFloat(val) + '')
+        })
 
 
         return @
@@ -199,12 +219,17 @@ class SIGNAL.Models.Data extends Backbone.Model
         #Calculate the current value based on n/2 samples before and after 
         #   the current value
         curVal = 0
+        #If there are no samples, just use the last data item
         if nSamples > 0
             for i in [0..nSamples]
                 index = start + ( (nSamples / 2) * - 1) + i
                 curVal += (data[index] * filterAmount)
         else
+            #Get the value of the last item
             curVal = data[len-1]
+            #If there is a filter coefficient, use it
+            if filterAmount
+                curVal = curVal * filterAmount
 
         return curVal
 # ===========================================================================

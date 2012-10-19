@@ -17,6 +17,9 @@ html, body {
     padding:0;
     -webkit-font-smoothing: antialiased;
 }
+em {
+    font-size: 0.9em;
+}
 h1, h2 { 
     border-bottom: 1px solid #cdcdcd;
 }

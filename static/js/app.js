@@ -82,18 +82,8 @@
       startTimeDelay = 200;
       this.$timeDelayLabel.html(startTimeDelay);
       this.$filterAmount = $('#filterAmount');
-      this.$samples.slider({
-        min: 0,
-        max: 40,
-        value: startSample,
-        animate: true,
-        slide: function(event, ui) {
-          SIGNAL.models.output.set({
-            nSamples: parseInt(ui.value, 10)
-          });
-          return _this.$samplesLabel.html(ui.value);
-        }
-      });
+      this.$filterAmountLabel = $('#filterAmountLabel');
+      this.$filterAmountLabel.html("1.0");
       this.$timeDelay.slider({
         min: 1,
         max: 800,
@@ -109,11 +99,36 @@
           return _this.$timeDelayLabel.html(ui.value);
         }
       });
-      $('#updateSamples').on('click', function() {
-        if (filterAmount.length > 0) {
-          return SIGNAL.models.output.set({
+      this.$samples.slider({
+        min: 0,
+        max: 40,
+        value: startSample,
+        animate: true,
+        slide: function(event, ui) {
+          SIGNAL.models.output.set({
+            nSamples: parseInt(ui.value, 10)
+          });
+          return _this.$samplesLabel.html(ui.value);
+        }
+      });
+      this.$filterAmount.slider({
+        min: -100,
+        max: 200,
+        value: 100,
+        animate: false,
+        slide: function(event, ui) {
+          var filterAmount, samples, val;
+          val = ui.value / 100;
+          samples = SIGNAL.models.output.get('nSamples');
+          if (samples > 0) {
+            filterAmount = val / samples;
+          } else {
+            filterAmount = val;
+          }
+          SIGNAL.models.output.set({
             filterAmount: parseFloat(filterAmount)
           });
+          return _this.$filterAmountLabel.html(parseFloat(val) + '');
         }
       });
       return this;
@@ -159,6 +174,7 @@
         }
       } else {
         curVal = data[len - 1];
+        if (filterAmount) curVal = curVal * filterAmount;
       }
       return curVal;
     };
