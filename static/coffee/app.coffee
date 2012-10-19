@@ -84,6 +84,8 @@ SIGNAL.functions.init = ()=>
 # ===========================================================================
 class SIGNAL.Views.App extends Backbone.View
     el: "body"
+    #NOTE: should use events here instead of attaching everything in render()
+    events: {}
     initialize: ()=>
         return @
 
@@ -108,73 +110,117 @@ class SIGNAL.Views.App extends Backbone.View
         startSample = 10
         @$samplesLabel.html(startSample)
 
-        #Time delay
-        @$timeDelay = $('#timeDelay')
-        @$timeDelayLabel = $('#timeDelayLabel')
-        startTimeDelay = 200
-        @$timeDelayLabel.html(startTimeDelay)
-
         #Filter amount
         @$filterAmount = $('#filterAmount')
         @$filterAmountLabel = $('#filterAmountLabel')
         @$filterAmountLabel.html("1.0")
 
+
+        #Time delay
+        @$timeDelay = {
+            input: $('#timeDelayInput')
+            output: $('#timeDelayOutput')
+        }
+        @$timeDelayLabel = {
+            input: $('#timeDelayInputLabel')
+            output: $('#timeDelayOutputLabel')
+        }
+
         #Sliders
         #--------------------------------
-        #Create slider for time delay
-        @$timeDelay.slider({
-            min: 1,
-            max: 800,
-            value: 200
-            animate: false,
-            slide: ( event, ui )=>
-                SIGNAL.models.output.set({
-                    timeDelay: parseInt(ui.value,10)
+        #Create slider for time delay for input and output
+        for graph in ['input', 'output']
+            #wrap in closure
+            do (graph)=>
+                #Create slider for each graph type (input / output) 
+                @$timeDelay[graph].slider({
+                    min: 1,
+                    max: 800,
+                    value: 200
+                    animate: false,
+                    slide: ( event, ui )=>
+                        #Update the time delay 
+                        SIGNAL.models[graph].set({
+                            timeDelay: parseInt(ui.value,10)
+                        })
+                        #Update UI
+                        @$timeDelayLabel[graph].html(ui.value)
                 })
-                SIGNAL.models.input.set({
-                    timeDelay: parseInt(ui.value,10)
-                })
-                #Update UI
-                @$timeDelayLabel.html(ui.value)
-        })
+                #Set start label
+                @$timeDelayLabel[graph].html(200)
+
+        #Slider callbacks
+        #--------------------------------
+        #SAMPLES
+        #   Note: Two functions - one for logic, one for callback
+        #       The callback will trigger an update of the other element
+        #       and then update its own values
+        samplesSlide = ( event, ui )=>
+            #Update filter
+            filterUpdate(null, {value: @filterSlider.slider('value') })
+            #Update the filter
+            return samplesUpdate(event, ui)
+
+        samplesUpdate = ( event, ui )=>
+            SIGNAL.models.output.set({
+                nSamples: parseInt(ui.value,10)
+            })
+            #Update UI
+            @$samplesLabel.html(ui.value)
+
+        #FILTER
+        filterSlide = ( event, ui )=>
+            #Update n samples
+            samplesUpdate(null, {value: @samplesSlider.slider('value') })
+            #Update the filter
+            return filterUpdate(event, ui)
+
+        filterUpdate = ( event, ui )=>
+            #Turn val into number from -2.0 to 2.0
+            val = ui.value / 100
+            #Calculate filter coefficient
+            samples = SIGNAL.models.output.get('nSamples')
+
+            #Don't try to divide by 0
+            if samples > 0
+                filterAmount = val / samples
+            else
+                filterAmount = val
+
+            #Calculate filter coefficient based on user
+            #   selected filter amount
+            SIGNAL.models.output.set({
+                filterAmount: parseFloat(filterAmount)
+            })
+            #Update UI
+            if val > 1.0
+                filterHtml = "<span class='amplify'>" + val + "</span> <em>Amplified</em>"
+            else if val < 0
+                filterHtml = "<span class='negative'>" + val + "</span> <em>Inversely Amplified(??)</em>"
+            else
+                filterHtml = val
+
+
+            @$filterAmountLabel.html(filterHtml)
+
 
         #Create slider for num samples
-        @$samples.slider({
+        #--------------------------------
+        @samplesSlider = @$samples.slider({
             min: 0,
             max: 40,
             value: startSample
             animate: true,
-            slide: ( event, ui )=>
-                SIGNAL.models.output.set({
-                    nSamples: parseInt(ui.value,10)
-                })
-                #Update UI
-                @$samplesLabel.html(ui.value)
+            slide: samplesSlide
         })
 
         #Slider for filter
-        @$filterAmount.slider({
+        @filterSlider = @$filterAmount.slider({
             min: -100,
             max: 200,
             value: 100
             animate: false,
-            slide: ( event, ui )=>
-                #Turn val into number from -2.0 to 2.0
-                val = ui.value / 100
-                #Calculate filter coefficient
-                samples = SIGNAL.models.output.get('nSamples')
-                if samples > 0
-                    filterAmount = val / samples
-                else
-                    filterAmount = val
-
-                #Calculate filter coefficient based on user
-                #   selected filter amount
-                SIGNAL.models.output.set({
-                    filterAmount: parseFloat(filterAmount)
-                })
-                #Update UI
-                @$filterAmountLabel.html(parseFloat(val) + '')
+            slide: filterSlide
         })
 
 

@@ -59,12 +59,14 @@
 
     App.prototype.el = "body";
 
+    App.prototype.events = {};
+
     App.prototype.initialize = function() {
       return this;
     };
 
     App.prototype.render = function() {
-      var startSample, startTimeDelay,
+      var filterSlide, filterUpdate, graph, samplesSlide, samplesUpdate, startSample, _fn, _i, _len, _ref,
         _this = this;
       this.$formulaInput = $('#formula-input');
       $('#use-random').on('click', function() {
@@ -77,59 +79,89 @@
       this.$samplesLabel = $('#samplesLabel');
       startSample = 10;
       this.$samplesLabel.html(startSample);
-      this.$timeDelay = $('#timeDelay');
-      this.$timeDelayLabel = $('#timeDelayLabel');
-      startTimeDelay = 200;
-      this.$timeDelayLabel.html(startTimeDelay);
       this.$filterAmount = $('#filterAmount');
       this.$filterAmountLabel = $('#filterAmountLabel');
       this.$filterAmountLabel.html("1.0");
-      this.$timeDelay.slider({
-        min: 1,
-        max: 800,
-        value: 200,
-        animate: false,
-        slide: function(event, ui) {
-          SIGNAL.models.output.set({
-            timeDelay: parseInt(ui.value, 10)
-          });
-          SIGNAL.models.input.set({
-            timeDelay: parseInt(ui.value, 10)
-          });
-          return _this.$timeDelayLabel.html(ui.value);
+      this.$timeDelay = {
+        input: $('#timeDelayInput'),
+        output: $('#timeDelayOutput')
+      };
+      this.$timeDelayLabel = {
+        input: $('#timeDelayInputLabel'),
+        output: $('#timeDelayOutputLabel')
+      };
+      _ref = ['input', 'output'];
+      _fn = function(graph) {
+        _this.$timeDelay[graph].slider({
+          min: 1,
+          max: 800,
+          value: 200,
+          animate: false,
+          slide: function(event, ui) {
+            SIGNAL.models[graph].set({
+              timeDelay: parseInt(ui.value, 10)
+            });
+            return _this.$timeDelayLabel[graph].html(ui.value);
+          }
+        });
+        return _this.$timeDelayLabel[graph].html(200);
+      };
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        graph = _ref[_i];
+        _fn(graph);
+      }
+      samplesSlide = function(event, ui) {
+        filterUpdate(null, {
+          value: _this.filterSlider.slider('value')
+        });
+        return samplesUpdate(event, ui);
+      };
+      samplesUpdate = function(event, ui) {
+        SIGNAL.models.output.set({
+          nSamples: parseInt(ui.value, 10)
+        });
+        return _this.$samplesLabel.html(ui.value);
+      };
+      filterSlide = function(event, ui) {
+        samplesUpdate(null, {
+          value: _this.samplesSlider.slider('value')
+        });
+        return filterUpdate(event, ui);
+      };
+      filterUpdate = function(event, ui) {
+        var filterAmount, filterHtml, samples, val;
+        val = ui.value / 100;
+        samples = SIGNAL.models.output.get('nSamples');
+        if (samples > 0) {
+          filterAmount = val / samples;
+        } else {
+          filterAmount = val;
         }
-      });
-      this.$samples.slider({
+        SIGNAL.models.output.set({
+          filterAmount: parseFloat(filterAmount)
+        });
+        if (val > 1.0) {
+          filterHtml = "<span class='amplify'>" + val + "</span> <em>Amplified</em>";
+        } else if (val < 0) {
+          filterHtml = "<span class='negative'>" + val + "</span> <em>Inversely Amplified(??)</em>";
+        } else {
+          filterHtml = val;
+        }
+        return _this.$filterAmountLabel.html(filterHtml);
+      };
+      this.samplesSlider = this.$samples.slider({
         min: 0,
         max: 40,
         value: startSample,
         animate: true,
-        slide: function(event, ui) {
-          SIGNAL.models.output.set({
-            nSamples: parseInt(ui.value, 10)
-          });
-          return _this.$samplesLabel.html(ui.value);
-        }
+        slide: samplesSlide
       });
-      this.$filterAmount.slider({
+      this.filterSlider = this.$filterAmount.slider({
         min: -100,
         max: 200,
         value: 100,
         animate: false,
-        slide: function(event, ui) {
-          var filterAmount, samples, val;
-          val = ui.value / 100;
-          samples = SIGNAL.models.output.get('nSamples');
-          if (samples > 0) {
-            filterAmount = val / samples;
-          } else {
-            filterAmount = val;
-          }
-          SIGNAL.models.output.set({
-            filterAmount: parseFloat(filterAmount)
-          });
-          return _this.$filterAmountLabel.html(parseFloat(val) + '');
-        }
+        slide: filterSlide
       });
       return this;
     };

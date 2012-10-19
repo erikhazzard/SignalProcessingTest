@@ -17,9 +17,6 @@ html, body {
     padding:0;
     -webkit-font-smoothing: antialiased;
 }
-em {
-    font-size: 0.9em;
-}
 h1, h2 { 
     border-bottom: 1px solid #cdcdcd;
 }
@@ -89,9 +86,6 @@ select:focus {
           box-shadow: none;
 }
 
-
-
-
 /* --------------------------------------
  *
  * SVG
@@ -113,6 +107,11 @@ svg {
   shape-rendering: crispEdges;
 }
 
+/* --------------------------------------
+ *
+ * Signal Action area
+ *
+ * -------------------------------------- */
 #signal-actions {
     background: #f0f0f0;
     bottom: 0;
@@ -127,9 +126,27 @@ svg {
     min-width: 190px;
 }
 
+#signal-actions .amplify {
+    color: #37C568;
+    font-weight: bold;
+}
 
+#signal-actions .negative{
+    color: #C74A4A;
+    font-weight: bold;
+}
 
+.example-text {
+    font-size: .6em;
+}
 
+em {
+    font-size: 0.7em;
+}
+.update-delay {
+    color: #336699;
+    font-weight: bold;
+}
 
 /* --------------------------------------
  *

@@ -16,16 +16,15 @@
     <svg width=600 height=200 id='signal-output'> </svg>
 </div>
 <div id='signal-actions'>
-    <h2>Update Rate</h2>
-    <div id='timeDelay'></div>
-    <div id='timeDelayLabel'></div>
-
     <h2>Input</h2>
     <input id='use-random' type='button' class='btn' value='Use Random Values' />
     <br />
     <input id='use-formula' type='button' class='btn' value='Use sin(x) Formula' />
-
     <br />
+    <br />
+    <div class='update-delay'>Update Delay (ms)</div>
+    <div id='timeDelayInput'></div>
+    <div id='timeDelayInputLabel'></div>
     <br />
 
     <h2>Output</h2>
@@ -37,9 +36,14 @@
     Filter Amount
     <div id='filterAmount'></div>
     <div id='filterAmountLabel'></div>
+    <em class='example-text'>Example: 0 samples and -1 filter amount will produce the inverse of the signal</em>
 
     <br />
-    <em>Example: 0 samples and -1 filter amount will produce the inverse of the signal</em>
+    <br />
+    <div class='update-delay'>Update Delay (ms)</div>
+    <div id='timeDelayOutput'></div>
+    <div id='timeDelayOutputLabel'></div>
+
 </div>
 
 <!-- ======================================================================
